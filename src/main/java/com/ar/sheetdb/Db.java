@@ -13,7 +13,6 @@ import com.google.auth.oauth2.GoogleCredentials;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
-import java.util.stream.Collectors;
 
 
 public class Db {
@@ -60,7 +59,7 @@ public class Db {
         try {
             String sheetName = AnnotationUtil.getTable(type);
             int columnCount = AnnotationUtil.getColumns(type).size();
-            String finalColumn = Character.toString((char) 64 + columnCount);
+            String finalColumn = Character.toString((char) 65 + columnCount - 1);
             // 65 ascii value of A, so the code will work up to Z column only.
             String range = sheetName + "!A2:" + finalColumn + 100;
             List<String> ranges = List.of(range);
@@ -86,35 +85,6 @@ public class Db {
         }
     }
 
-    /*public <T extends GoogleSheet> List<T> getAll(Class<T> type) {
-        String sheetName = AnnotationUtil.getTable(type);
-        int columnCount = AnnotationUtil.getColumns(type).size();
-        String finalColumn = Character.toString((char) 65 + columnCount);
-        // 65 ascii value of A, so the code will work up to Z column only.
-        String range = sheetName + "!A2:" + finalColumn + 100;
-        List<List<Object>> values;
-        ValueRange response = null;
-        List<T> result = null;
-        try {
-            response = sheetService.spreadsheets().values()
-                    .get(spreadsheetId, range)
-                    .execute();
-            values = response.getValues();
-            result = new ArrayList<>();
-            for (int i = 0; i < values.size(); i++) {
-                if (!values.get(i).stream().anyMatch(x -> x != null)) {
-                    continue;
-                }
-                T model = AnnotationUtil.convert(values.get(i), type);
-                model.row = i + 2;
-                result.add(model);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return result;
-    }*/
-
     public <T extends GoogleSheet> void generateHeaders(Class<T> type) {
         //TODO set columnwise formatting also
         String sheetName = AnnotationUtil.getTable(type);
@@ -134,26 +104,6 @@ public class Db {
             throw new RuntimeException(e);
         }
     }
-
-    /*public <T extends GoogleSheet> void save(T obj) {
-        Class<? extends GoogleSheet> type = obj.getClass();
-        String sheetName = AnnotationUtil.getTable(type);
-        int columnCount = AnnotationUtil.getColumns(type).size();
-        String finalColumn = Character.toString((char) 65 + columnCount - 1);
-        String range = sheetName + "!A1:" + finalColumn + "1";
-        //todo use cell
-        List<List<Object>> updatedList = AnnotationUtil.convert(obj);
-        ValueRange body = new ValueRange()
-                .setValues(updatedList);
-        try {
-            AppendValuesResponse result =
-                    sheetService.spreadsheets().values().append(spreadsheetId, range, body)
-                            .setValueInputOption("RAW")
-                            .execute();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }*/
 
     public <T extends GoogleSheet> void save(T obj) {
         Class<? extends GoogleSheet> type = obj.getClass();
@@ -192,10 +142,10 @@ public class Db {
 
         UpdateCellsRequest cellReq = new UpdateCellsRequest();
         cellReq.setRange(new GridRange().setSheetId(AnnotationUtil.getSheetId(type))
-                        .setStartColumnIndex(0)
-                        .setEndColumnIndex(columnCount)
-                        .setStartRowIndex(obj.row-1)
-                        .setEndRowIndex(obj.row));
+                .setStartColumnIndex(0)
+                .setEndColumnIndex(columnCount)
+                .setStartRowIndex(obj.row - 1)
+                .setEndRowIndex(obj.row));
 
         cellReq.setRows(rowData);
         cellReq.setFields("userEnteredValue,userEnteredFormat.numberFormat");

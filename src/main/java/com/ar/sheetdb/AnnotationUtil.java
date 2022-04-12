@@ -67,22 +67,6 @@ public class AnnotationUtil {
         return o;
     }
 
-    /*public static <T extends GoogleSheet> List<List<Object>> convert(T obj) {
-        Class<? extends GoogleSheet> type = obj.getClass();
-        List<Field> fields = Arrays.stream(type.getFields())
-                .filter(f-> f.getAnnotation(Column.class)!=null)
-                .sorted(Comparator.comparingInt(f -> f.getAnnotation(Column.class).order())).collect(Collectors.toList());
-        List<Object> row = new ArrayList<>();
-        fields.forEach(f->{
-            try {
-                row.add(f.get(obj));
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-        return List.of(row);
-    }*/
-
     public static <T extends GoogleSheet> void delete(T obj) {
         Class<? extends GoogleSheet> type = obj.getClass();
         List<Field> fields = Arrays.stream(type.getDeclaredFields())
