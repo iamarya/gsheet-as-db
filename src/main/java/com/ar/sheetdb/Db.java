@@ -15,6 +15,7 @@ import java.io.InputStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
+
 public class Db {
 
     public Sheets sheetService;
@@ -55,36 +56,71 @@ public class Db {
     }
 
     public <T extends GoogleSheet> List<T> getAll(Class<T> type) {
+        List<T> result = null;
+        try {
+            String sheetName = AnnotationUtil.getTable(type);
+            int columnCount = AnnotationUtil.getColumns(type).size();
+            String finalColumn = Character.toString((char) 64 + columnCount);
+            // 65 ascii value of A, so the code will work up to Z column only.
+            String range = sheetName + "!A2:" + finalColumn + 100;
+            List<String> ranges = List.of(range);
+            Sheets.Spreadsheets.Values.BatchGet request =
+                    sheetService.spreadsheets().values().batchGet(spreadsheetId);
+            request.setRanges(ranges);
+            request.setValueRenderOption("UNFORMATTED_VALUE"); // FORMATTED_VALUE, UNFORMATTED_VALUE, FORMULA
+            request.setDateTimeRenderOption("FORMATTED_STRING"); //SERIAL_NUMBER, FORMATTED_STRING
+            BatchGetValuesResponse response = request.execute();
+            List<List<Object>> values = response.getValueRanges().get(0).getValues();
+            result = new ArrayList<>();
+            for (int i = 0; i < values.size(); i++) {
+                if (!values.get(i).stream().anyMatch(x -> x != null)) {
+                    continue;
+                }
+                T model = AnnotationUtil.convert(values.get(i), type);
+                model.row = i + 2;
+                result.add(model);
+            }
+            return result;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /*public <T extends GoogleSheet> List<T> getAll(Class<T> type) {
         String sheetName = AnnotationUtil.getTable(type);
         int columnCount = AnnotationUtil.getColumns(type).size();
-        String finalColumn = Character.toString ((char) 65+columnCount);
+        String finalColumn = Character.toString((char) 65 + columnCount);
         // 65 ascii value of A, so the code will work up to Z column only.
-        String range = sheetName + "!A2:"+finalColumn+100;
+        String range = sheetName + "!A2:" + finalColumn + 100;
         List<List<Object>> values;
         ValueRange response = null;
-        List<T> result =  null;
+        List<T> result = null;
         try {
             response = sheetService.spreadsheets().values()
                     .get(spreadsheetId, range)
                     .execute();
             values = response.getValues();
             result = new ArrayList<>();
-            for(int i =0; i<values.size(); i++){
+            for (int i = 0; i < values.size(); i++) {
+                if (!values.get(i).stream().anyMatch(x -> x != null)) {
+                    continue;
+                }
                 T model = AnnotationUtil.convert(values.get(i), type);
-                model.row = i+2;
+                model.row = i + 2;
                 result.add(model);
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
         return result;
-    }
+    }*/
 
     public <T extends GoogleSheet> void generateHeaders(Class<T> type) {
+        //TODO set columnwise formatting also
         String sheetName = AnnotationUtil.getTable(type);
         int columnCount = AnnotationUtil.getColumns(type).size();
-        String finalColumn = Character.toString ((char) 65+columnCount-1);
-        String range = sheetName + "!A1:" + finalColumn+ "1";
+        String finalColumn = Character.toString((char) 65 + columnCount - 1);
+        String range = sheetName + "!A1:" + finalColumn + "1";
         List<Object> cols = Arrays.asList(AnnotationUtil.getColumns(type).toArray());
         List<List<Object>> updatedList = List.of(cols);
         ValueRange body = new ValueRange()
@@ -99,13 +135,13 @@ public class Db {
         }
     }
 
-    public <T extends GoogleSheet> void append(T obj) {
+    /*public <T extends GoogleSheet> void save(T obj) {
         Class<? extends GoogleSheet> type = obj.getClass();
         String sheetName = AnnotationUtil.getTable(type);
         int columnCount = AnnotationUtil.getColumns(type).size();
-        String finalColumn = Character.toString ((char) 65+columnCount-1);
-        String range = sheetName + "!A1:" + finalColumn+ "1";
-
+        String finalColumn = Character.toString((char) 65 + columnCount - 1);
+        String range = sheetName + "!A1:" + finalColumn + "1";
+        //todo use cell
         List<List<Object>> updatedList = AnnotationUtil.convert(obj);
         ValueRange body = new ValueRange()
                 .setValues(updatedList);
@@ -117,22 +153,62 @@ public class Db {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }*/
+
+    public <T extends GoogleSheet> void save(T obj) {
+        Class<? extends GoogleSheet> type = obj.getClass();
+        List<RowData> rowData = new ArrayList<RowData>();
+        RowData row = AnnotationUtil.convert(obj);
+        rowData.add(row);
+
+        BatchUpdateSpreadsheetRequest batchRequests = new BatchUpdateSpreadsheetRequest();
+        BatchUpdateSpreadsheetResponse response;
+        List<Request> requests = new ArrayList<>();
+
+        AppendCellsRequest appendCellReq = new AppendCellsRequest();
+        appendCellReq.setSheetId(AnnotationUtil.getSheetId(type));
+        appendCellReq.setRows(rowData);
+        appendCellReq.setFields("userEnteredValue,userEnteredFormat.numberFormat");
+        requests.add(new Request().setAppendCells(appendCellReq));
+        batchRequests.setRequests(requests);
+        try {
+            response = sheetService.spreadsheets().batchUpdate(spreadsheetId, batchRequests).execute();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public <T extends GoogleSheet> void update(T obj) {
         Class<? extends GoogleSheet> type = obj.getClass();
-        String sheetName = AnnotationUtil.getTable(type);
         int columnCount = AnnotationUtil.getColumns(type).size();
-        String finalColumn = Character.toString ((char) 65+columnCount-1);
-        String range = sheetName + "!A"+obj.row+":" + finalColumn+ obj.row;
-        List<List<Object>> updatedList = AnnotationUtil.convert(obj);
-        ValueRange body = new ValueRange()
-                .setValues(updatedList);
+
+        List<RowData> rowData = new ArrayList<RowData>();
+        RowData row = AnnotationUtil.convert(obj);
+        rowData.add(row);
+
+        BatchUpdateSpreadsheetRequest batchRequests = new BatchUpdateSpreadsheetRequest();
+        BatchUpdateSpreadsheetResponse response;
+        List<Request> requests = new ArrayList<>();
+
+        UpdateCellsRequest cellReq = new UpdateCellsRequest();
+        cellReq.setRange(new GridRange().setSheetId(AnnotationUtil.getSheetId(type))
+                        .setStartColumnIndex(0)
+                        .setEndColumnIndex(columnCount)
+                        .setStartRowIndex(obj.row-1)
+                        .setEndRowIndex(obj.row));
+
+        cellReq.setRows(rowData);
+        cellReq.setFields("userEnteredValue,userEnteredFormat.numberFormat");
+        requests.add(new Request().setUpdateCells(cellReq));
+        batchRequests.setRequests(requests);
         try {
-            UpdateValuesResponse result =
-                    sheetService.spreadsheets().values().update(spreadsheetId, range, body)
-                            .setValueInputOption("RAW")
-                            .execute();
+            response = sheetService.spreadsheets().batchUpdate(spreadsheetId, batchRequests).execute();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        try {
+            response = sheetService.spreadsheets().batchUpdate(spreadsheetId, batchRequests).execute();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -140,6 +216,17 @@ public class Db {
 
     public <T extends GoogleSheet> void delete(T obj) {
         try {
+            Class<? extends GoogleSheet> type = obj.getClass();
+            String sheetName = AnnotationUtil.getTable(type);
+            int columnCount = AnnotationUtil.getColumns(type).size();
+            String finalColumn = Character.toString((char) 65 + columnCount - 1);
+            String range = sheetName + "!A" + obj.row + ":" + finalColumn + obj.row;
+            AnnotationUtil.delete(obj);
+            ClearValuesRequest requestBody = new ClearValuesRequest();
+            Sheets.Spreadsheets.Values.Clear request = sheetService.spreadsheets().values().clear(spreadsheetId, range, requestBody);
+            ClearValuesResponse response = request.execute();
+            /*
+            This will delete the row. Not prefered as I am using rownum for querying. so instead clearing the row.
             BatchUpdateSpreadsheetRequest requestBody = new BatchUpdateSpreadsheetRequest();
             Request request = new Request();
             request.setDeleteDimension(new DeleteDimensionRequest()
@@ -153,7 +240,7 @@ public class Db {
             requestBody.setRequests(List.of(request));
             Sheets.Spreadsheets.BatchUpdate deleteRequest =
                     sheetService.spreadsheets().batchUpdate(spreadsheetId, requestBody);
-            BatchUpdateSpreadsheetResponse deleteResponse = deleteRequest.execute();
+            BatchUpdateSpreadsheetResponse deleteResponse = deleteRequest.execute();*/
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
