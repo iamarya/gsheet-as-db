@@ -9,6 +9,7 @@ import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.api.services.sheets.v4.model.*;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.common.util.concurrent.RateLimiter;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,9 +21,10 @@ public class Db {
     public Sheets sheetService;
     public String spreadsheetId;
     public Integer rowFetchAtOnce;
-
+    RateLimiter rateLimiter;
     public Db(String credPath, String appName, String spreadsheetId, Integer rowFetchAtOnce) {
         try {
+            this.rateLimiter = RateLimiter.create(30.0/60);
             this.spreadsheetId = spreadsheetId;
             this.rowFetchAtOnce = rowFetchAtOnce;
             JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
@@ -42,6 +44,7 @@ public class Db {
 
 
     public <T extends GoogleSheet> void create(Class<T> type) {
+        rateLimiter.acquire();
         try {
             List<Request> requests = new ArrayList<>();
             String sheetName = AnnotationUtil.getTable(type);
@@ -55,6 +58,7 @@ public class Db {
     }
 
     public <T extends GoogleSheet> List<T> getAll(Class<T> type) {
+        rateLimiter.acquire();
         List<T> result = null;
         try {
             String sheetName = AnnotationUtil.getTable(type);
@@ -87,6 +91,7 @@ public class Db {
 
     public <T extends GoogleSheet> void generateHeaders(Class<T> type) {
         //TODO set columnwise formatting also
+        rateLimiter.acquire();
         String sheetName = AnnotationUtil.getTable(type);
         int columnCount = AnnotationUtil.getColumns(type).size();
         String finalColumn = Character.toString((char) 65 + columnCount - 1);
@@ -106,6 +111,7 @@ public class Db {
     }
 
     public <T extends GoogleSheet> void save(T obj) {
+        rateLimiter.acquire();
         Class<? extends GoogleSheet> type = obj.getClass();
         List<RowData> rowData = new ArrayList<RowData>();
         RowData row = AnnotationUtil.convert(obj);
@@ -129,6 +135,7 @@ public class Db {
     }
 
     public <T extends GoogleSheet> void update(T obj) {
+        rateLimiter.acquire();
         Class<? extends GoogleSheet> type = obj.getClass();
         int columnCount = AnnotationUtil.getColumns(type).size();
 
@@ -156,15 +163,10 @@ public class Db {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-
-        try {
-            response = sheetService.spreadsheets().batchUpdate(spreadsheetId, batchRequests).execute();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
-    public <T extends GoogleSheet> void delete(T obj) {
+    public <T extends GoogleSheet> void clear(T obj) {
+        rateLimiter.acquire();
         try {
             Class<? extends GoogleSheet> type = obj.getClass();
             String sheetName = AnnotationUtil.getTable(type);
