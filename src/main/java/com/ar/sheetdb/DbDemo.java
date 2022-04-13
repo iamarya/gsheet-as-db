@@ -29,15 +29,22 @@ public class DbDemo {
         p.profit = 3.33333345;
         p.row = 4;
         p.date = LocalDate.now();
-        for (int i =0; i< 100; i++) {
+        for (int i =0; i< 200; i++) {
             p.row = i+2;
             p.id=i;
             db.update(p);
         }
         //db.update(p);
         //db.clear(p);
-
-
+//        Titrator t = new Titrator(5, Duration.ofSeconds(5));
+//        t.consume();
+//        t.consume();
+//        Thread.sleep(20*1000);
+//        int i =0;
+//        while (true){
+//            t.consume();
+//            System.out.println(LocalDateTime.now()+ " Test"+ i++);
+//        }
     }
 
 }

@@ -13,6 +13,7 @@ import com.google.common.util.concurrent.RateLimiter;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.*;
 
 
@@ -21,10 +22,10 @@ public class Db {
     public Sheets sheetService;
     public String spreadsheetId;
     public Integer rowFetchAtOnce;
-    RateLimiter rateLimiter;
+    BucketRateLimiter rateLimiter;
     public Db(String credPath, String appName, String spreadsheetId, Integer rowFetchAtOnce) {
         try {
-            this.rateLimiter = RateLimiter.create(30.0/60);
+            this.rateLimiter = new BucketRateLimiter(60, Duration.ofMinutes(1));
             this.spreadsheetId = spreadsheetId;
             this.rowFetchAtOnce = rowFetchAtOnce;
             JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
@@ -44,7 +45,7 @@ public class Db {
 
 
     public <T extends GoogleSheet> void create(Class<T> type) {
-        rateLimiter.acquire();
+        rateLimiter.consume();
         try {
             List<Request> requests = new ArrayList<>();
             String sheetName = AnnotationUtil.getTable(type);
@@ -58,7 +59,7 @@ public class Db {
     }
 
     public <T extends GoogleSheet> List<T> getAll(Class<T> type) {
-        rateLimiter.acquire();
+        rateLimiter.consume();
         List<T> result = null;
         try {
             String sheetName = AnnotationUtil.getTable(type);
@@ -91,7 +92,7 @@ public class Db {
 
     public <T extends GoogleSheet> void generateHeaders(Class<T> type) {
         //TODO set columnwise formatting also
-        rateLimiter.acquire();
+        rateLimiter.consume();
         String sheetName = AnnotationUtil.getTable(type);
         int columnCount = AnnotationUtil.getColumns(type).size();
         String finalColumn = Character.toString((char) 65 + columnCount - 1);
@@ -111,7 +112,7 @@ public class Db {
     }
 
     public <T extends GoogleSheet> void save(T obj) {
-        rateLimiter.acquire();
+        rateLimiter.consume();
         Class<? extends GoogleSheet> type = obj.getClass();
         List<RowData> rowData = new ArrayList<RowData>();
         RowData row = AnnotationUtil.convert(obj);
@@ -135,7 +136,7 @@ public class Db {
     }
 
     public <T extends GoogleSheet> void update(T obj) {
-        rateLimiter.acquire();
+        rateLimiter.consume();
         Class<? extends GoogleSheet> type = obj.getClass();
         int columnCount = AnnotationUtil.getColumns(type).size();
 
@@ -166,7 +167,7 @@ public class Db {
     }
 
     public <T extends GoogleSheet> void clear(T obj) {
-        rateLimiter.acquire();
+        rateLimiter.consume();
         try {
             Class<? extends GoogleSheet> type = obj.getClass();
             String sheetName = AnnotationUtil.getTable(type);
@@ -177,22 +178,6 @@ public class Db {
             ClearValuesRequest requestBody = new ClearValuesRequest();
             Sheets.Spreadsheets.Values.Clear request = sheetService.spreadsheets().values().clear(spreadsheetId, range, requestBody);
             ClearValuesResponse response = request.execute();
-            /*
-            This will delete the row. Not prefered as I am using rownum for querying. so instead clearing the row.
-            BatchUpdateSpreadsheetRequest requestBody = new BatchUpdateSpreadsheetRequest();
-            Request request = new Request();
-            request.setDeleteDimension(new DeleteDimensionRequest()
-                    .setRange(new DimensionRange()
-                            .setSheetId(AnnotationUtil.getSheetId(obj.getClass()))
-                            .setDimension("ROWS")
-                            .setStartIndex(obj.row - 1)
-                            .setEndIndex(obj.row)
-                    )
-            );
-            requestBody.setRequests(List.of(request));
-            Sheets.Spreadsheets.BatchUpdate deleteRequest =
-                    sheetService.spreadsheets().batchUpdate(spreadsheetId, requestBody);
-            BatchUpdateSpreadsheetResponse deleteResponse = deleteRequest.execute();*/
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
