@@ -9,7 +9,6 @@ import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.api.services.sheets.v4.model.*;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.common.util.concurrent.RateLimiter;
 
 import java.io.IOException;
 import java.io.InputStream;

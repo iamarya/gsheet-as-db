@@ -1,45 +1,44 @@
 package com.ar.sheetdb;
 
 import com.google.common.util.concurrent.RateLimiter;
+
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.Period;
-import java.util.concurrent.TimeUnit;
 
 public class BucketRateLimiter {
 
-    private final int numDosesPerPeriod;
+    private final int rate;
     private final RateLimiter rateLimiter;
-    private long numDosesAvailable;
-    private transient final Object doseLock;
+    private long bucketAvailability;
+    private transient final Object bucketLock;
     private LocalDateTime lastTime;
     private Duration period;
 
-    public BucketRateLimiter(int numDosesPerPeriod, Duration period) {
-        this.numDosesPerPeriod = numDosesPerPeriod;
+    public BucketRateLimiter(int rate, Duration period) {
+        this.rate = rate;
         this.period = period;
         double numSeconds = period.getSeconds() + period.getNano() / 1000000000d;
         rateLimiter = RateLimiter.create(1 / numSeconds);
-        numDosesAvailable = 0L;
-        doseLock = new Object();
+        bucketAvailability = 0L;
+        bucketLock = new Object();
     }
 
-    /**
-     * Consumes a dose from this titrator, blocking until a dose is available.
-     */
     public void consume() {
-        synchronized (doseLock) {
+        synchronized (bucketLock) {
             LocalDateTime current = LocalDateTime.now();
-            if(lastTime!= null && Duration.between(lastTime, current).toSeconds() >= this.period.toSeconds()){
-                numDosesAvailable=0;
+            if (lastTime != null && Duration.between(lastTime, current).toSeconds() >= this.period.toSeconds()) {
+                 /* Emptying the availability as there might be already available bucket from previous period and
+                 in new period again a full available bucket is provided if consumed all at once will exceed the
+                 rate limit.*/
+                bucketAvailability = 0;
             }
-            if (numDosesAvailable == 0) { // then refill
+            if (bucketAvailability == 0) {
+                // then refill
                 rateLimiter.acquire();
-                numDosesAvailable = numDosesPerPeriod;
+                bucketAvailability = rate;
             }
             lastTime = LocalDateTime.now();
-            numDosesAvailable--;
+            bucketAvailability--;
         }
     }
-
 }
