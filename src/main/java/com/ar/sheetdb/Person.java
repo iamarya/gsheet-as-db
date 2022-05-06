@@ -7,7 +7,7 @@ public class Person extends GoogleSheet {
     @Column(name = "Id", order = 1)
     public Integer id;
 
-    @Column(name = "Name", order = 2)
+    @Column(name = "Name", order = 2, formula=true)
     public String name;
 
     @Column(name = "Profit", order = 3)
@@ -16,6 +16,9 @@ public class Person extends GoogleSheet {
     @Column(name = "Date", order = 4)
     public LocalDate date;
 
+    @Column(name = "Active", order = 5)
+    public Boolean active;
+
     @Override
     public String toString() {
         return "Person{" +
@@ -23,7 +26,8 @@ public class Person extends GoogleSheet {
                 ", id=" + id +
                 ", name='" + name + '\'' +
                 ", profit=" + profit +
-                ", date='" + date + '\'' +
+                ", date=" + date +
+                ", active=" + active +
                 '}';
     }
 }

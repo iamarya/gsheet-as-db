@@ -22,17 +22,21 @@ public class DbDemo {
 
         //db.create(Person.class);
         //db.generateHeaders(Person.class);
-        //System.out.println(db.getAll(Person.class));
+        System.out.println(db.getAll(Person.class));
         Person p = new Person();
         p.id = 123;
-        p.name = "Teeera";
+        p.name = "=upper(\"arya\")";
         p.profit = 3.33333345;
         p.row = 4;
+        p.active = true;
         p.date = LocalDate.now();
+        db.update(p);
         for (int i =0; i< 200; i++) {
             p.row = i+2;
             p.id=i;
-            db.update(p);
+            if(p.row%2==0)
+                p.active=false;
+            //db.update(p);
         }
         //db.update(p);
         //db.clear(p);

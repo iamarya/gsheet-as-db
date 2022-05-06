@@ -58,6 +58,10 @@ public class AnnotationUtil {
                     fields.get(i).set(o, LocalDate.parse(String.valueOf(x.get(i)), formatter));
                     continue;
                 }
+                if(fields.get(i).getType().equals(Boolean.class)) {
+                    fields.get(i).set(o, Boolean.valueOf(String.valueOf(x.get(i))));
+                    continue;
+                }
                 fields.get(i).set(o, x.get(i));
             }
 
@@ -102,8 +106,15 @@ public class AnnotationUtil {
                     long days = DAYS.between(baseDate, date);
                     cell.setUserEnteredValue(new ExtendedValue().setNumberValue(Double.valueOf(days)));
                     cell.setUserEnteredFormat(new CellFormat().setNumberFormat(new NumberFormat().setType("DATE").setPattern("dd-MMM-yyyy")));
-                } else {
-                    cell.setUserEnteredValue(new ExtendedValue().setStringValue(String.valueOf(f.get(obj))));
+                }else if(f.getType().equals(Boolean.class)) {
+                    cell.setUserEnteredValue(new ExtendedValue().setBoolValue((Boolean) f.get(obj)));
+                }
+                else {
+                    if(f.getAnnotation(Column.class).formula()){
+                        cell.setUserEnteredValue(new ExtendedValue().setFormulaValue(String.valueOf(f.get(obj))));
+                    } else{
+                        cell.setUserEnteredValue(new ExtendedValue().setStringValue(String.valueOf(f.get(obj))));
+                    }
                 }
                 cellData.add(cell);
             } catch (Exception e) {
