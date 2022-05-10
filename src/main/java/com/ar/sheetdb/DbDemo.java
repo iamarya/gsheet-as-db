@@ -2,6 +2,7 @@ package com.ar.sheetdb;
 
 import com.google.api.services.sheets.v4.model.ValueRange;
 import com.google.common.util.concurrent.RateLimiter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -14,9 +15,12 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class DbDemo {
 
+    @Value("${gsheet.credential}")
+    private String credentialPath;
+
     @PostConstruct
     public void start() throws InterruptedException {
-        Db db = new Db("/credentials.json",
+        Db db = new Db(credentialPath,
                 "Db Demo",
                 "1TsPofNeYK1bBtdNfwySB2KlwXCnqDg11xu7RpZZxCF4", 100);
 
