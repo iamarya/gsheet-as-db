@@ -10,6 +10,7 @@ import com.google.api.services.sheets.v4.model.*;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
@@ -31,7 +32,7 @@ public class Db {
             List<String> SCOPES = Collections.singletonList(SheetsScopes.SPREADSHEETS);
             NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
             GoogleCredentials googleCredentials;
-            try (InputStream inputSteam = Db.class.getResourceAsStream(credPath)) {
+            try (InputStream inputSteam = new FileInputStream(credPath)) {
                 googleCredentials = GoogleCredentials.fromStream(inputSteam).createScoped(SCOPES);
             }
             this.sheetService = new Sheets.Builder(HTTP_TRANSPORT, JSON_FACTORY, new HttpCredentialsAdapter(googleCredentials))
