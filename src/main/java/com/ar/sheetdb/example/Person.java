@@ -1,4 +1,8 @@
-package com.ar.sheetdb;
+package com.ar.sheetdb.example;
+
+import com.ar.sheetdb.core.Column;
+import com.ar.sheetdb.core.GoogleSheet;
+import com.ar.sheetdb.core.Table;
 
 import java.time.LocalDate;
 

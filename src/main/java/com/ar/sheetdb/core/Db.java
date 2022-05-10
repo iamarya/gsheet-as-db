@@ -1,4 +1,4 @@
-package com.ar.sheetdb;
+package com.ar.sheetdb.core;
 
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;

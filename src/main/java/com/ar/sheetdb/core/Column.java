@@ -1,4 +1,4 @@
-package com.ar.sheetdb;
+package com.ar.sheetdb.core;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

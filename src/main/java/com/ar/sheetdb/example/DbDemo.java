@@ -1,16 +1,11 @@
-package com.ar.sheetdb;
+package com.ar.sheetdb.example;
 
-import com.google.api.services.sheets.v4.model.ValueRange;
-import com.google.common.util.concurrent.RateLimiter;
+import com.ar.sheetdb.core.Db;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-import java.time.Duration;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 @Component
 public class DbDemo {
