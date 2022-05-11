@@ -4,6 +4,7 @@ import com.ar.sheetdb.example.Person;
 import com.google.api.services.sheets.v4.model.*;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -38,6 +39,7 @@ public class AnnotationUtil {
 
     static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy");
 
+    //read data
     public static <T extends GoogleSheet> T convert(List<Object> x, Class<T> type) {
         T o = null;
         try {
@@ -47,23 +49,37 @@ public class AnnotationUtil {
                     .sorted(Comparator.comparingInt(f -> f.getAnnotation(Column.class).order()))
                     .collect(Collectors.toList());
             for (int i = 0; i < x.size(); i++) {
+                String value = String.valueOf(x.get(i));
+                if(value.equals("")){
+                    fields.get(i).set(o, null);
+                    continue;
+                }
                 if (fields.get(i).getType().equals(Integer.class)) {
-                    fields.get(i).set(o, Integer.parseInt(String.valueOf(x.get(i))));
+                    fields.get(i).set(o, Integer.parseInt(value));
                     continue;
                 }
                 if (fields.get(i).getType().equals(Double.class)) {
-                    fields.get(i).set(o, Double.parseDouble(String.valueOf(x.get(i))));
+                    fields.get(i).set(o, Double.parseDouble(value));
                     continue;
                 }
                 if (fields.get(i).getType().equals(LocalDate.class)) {
-                    fields.get(i).set(o, LocalDate.parse(String.valueOf(x.get(i)), formatter));
+                    fields.get(i).set(o, LocalDate.parse(value, formatter));
                     continue;
                 }
                 if (fields.get(i).getType().equals(Boolean.class)) {
-                    fields.get(i).set(o, Boolean.valueOf(String.valueOf(x.get(i))));
+                    fields.get(i).set(o, Boolean.valueOf(value));
                     continue;
                 }
-                fields.get(i).set(o, x.get(i));
+                if (fields.get(i).getType().equals(String.class)) {
+                    fields.get(i).set(o, x.get(i));
+                    continue;
+                }
+                if (fields.get(i).getType().isEnum()) {
+                    Method m = fields.get(i).getType().getMethod("fromString", String.class);
+                    fields.get(i).set(o, m.invoke(null, value));
+                    continue;
+                }
+                throw new RuntimeException("Field is unknown type");
             }
 
         } catch (Exception e) {
@@ -87,6 +103,7 @@ public class AnnotationUtil {
 
     static LocalDate baseDate = LocalDate.parse("30-Dec-1899", formatter);
 
+    //write data
     public static <T extends GoogleSheet> RowData convert(T obj) {
         Class<? extends GoogleSheet> type = obj.getClass();
         List<CellData> cellData = new ArrayList<CellData>();
@@ -110,7 +127,10 @@ public class AnnotationUtil {
                     cell.setUserEnteredFormat(new CellFormat().setNumberFormat(new NumberFormat().setType("DATE").setPattern("dd-MMM-yyyy")));
                 } else if (f.getType().equals(Boolean.class)) {
                     cell.setUserEnteredValue(new ExtendedValue().setBoolValue((Boolean) f.get(obj)));
-                } else {
+                }
+                //todo enum type
+                // convert to String type and in else throw exception
+                else {
                     if (f.getAnnotation(Column.class).formula()) {
                         cell.setUserEnteredValue(new ExtendedValue().setFormulaValue(String.valueOf(f.get(obj))));
                     } else {
