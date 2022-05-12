@@ -62,11 +62,12 @@ public class Db {
         rateLimiter.consume();
         List<T> result = null;
         try {
+            //todo loop it until end of the row by fetching rowFetchAtOnce at a time
             String sheetName = AnnotationUtil.getTable(type);
             int columnCount = AnnotationUtil.getColumns(type).size();
             String finalColumn = Character.toString((char) 65 + columnCount - 1);
             // 65 ascii value of A, so the code will work up to Z column only.
-            String range = sheetName + "!A2:" + finalColumn + 100;
+            String range = sheetName + "!A2:" + finalColumn + rowFetchAtOnce;
             List<String> ranges = List.of(range);
             Sheets.Spreadsheets.Values.BatchGet request =
                     sheetService.spreadsheets().values().batchGet(spreadsheetId);
@@ -75,6 +76,10 @@ public class Db {
             request.setDateTimeRenderOption("FORMATTED_STRING"); //SERIAL_NUMBER, FORMATTED_STRING
             BatchGetValuesResponse response = request.execute();
             List<List<Object>> values = response.getValueRanges().get(0).getValues();
+            if(values==null){
+                return Collections.emptyList();
+            }
+            //System.out.println(values);
             result = new ArrayList<>();
             for (int i = 0; i < values.size(); i++) {
                 if (!values.get(i).stream().anyMatch(x -> x != null)) {
@@ -111,6 +116,14 @@ public class Db {
         }
     }
 
+    public <T extends GoogleSheet> void add(T obj) {
+        List<? extends GoogleSheet> all = getAll(obj.getClass());
+        int index = all.size()==0? 2: all.get(all.size() - 1).row + 1;
+        obj.row = index;
+        update(obj);
+    }
+
+    @Deprecated
     public <T extends GoogleSheet> void save(T obj) {
         rateLimiter.consume();
         Class<? extends GoogleSheet> type = obj.getClass();

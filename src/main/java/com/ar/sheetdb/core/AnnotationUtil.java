@@ -52,38 +52,26 @@ public class AnnotationUtil {
                 String value = String.valueOf(x.get(i));
                 if(value.equals("")){
                     fields.get(i).set(o, null);
-                    continue;
-                }
-                if (fields.get(i).getType().equals(Integer.class)) {
+                } else if (fields.get(i).getType().equals(Integer.class)) {
                     fields.get(i).set(o, Integer.parseInt(value));
-                    continue;
-                }
-                if (fields.get(i).getType().equals(Double.class)) {
+                }else if (fields.get(i).getType().equals(Double.class)) {
                     fields.get(i).set(o, Double.parseDouble(value));
-                    continue;
-                }
-                if (fields.get(i).getType().equals(LocalDate.class)) {
+                }else if (fields.get(i).getType().equals(LocalDate.class)) {
                     fields.get(i).set(o, LocalDate.parse(value, formatter));
-                    continue;
-                }
-                if (fields.get(i).getType().equals(Boolean.class)) {
+                }else if (fields.get(i).getType().equals(Boolean.class)) {
                     fields.get(i).set(o, Boolean.valueOf(value));
-                    continue;
-                }
-                if (fields.get(i).getType().equals(String.class)) {
+                }else if (fields.get(i).getType().equals(String.class)) {
                     fields.get(i).set(o, x.get(i));
-                    continue;
-                }
-                if (fields.get(i).getType().isEnum()) {
-                    Method m = fields.get(i).getType().getMethod("fromString", String.class);
+                }else if (fields.get(i).getType().isEnum()) {
+                    Method m = fields.get(i).getType().getMethod("valueOf", String.class);
                     fields.get(i).set(o, m.invoke(null, value));
-                    continue;
+                } else {
+                    throw new RuntimeException("Field is unknown type");
                 }
-                throw new RuntimeException("Field is unknown type");
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
         return o;
     }
@@ -115,7 +103,9 @@ public class AnnotationUtil {
         fields.forEach(f -> {
             try {
                 CellData cell = new CellData();
-                if (f.getType().equals(Integer.class)) {
+                if(f.get(obj)==null){
+                    cell.setUserEnteredValue(new ExtendedValue().setStringValue(null));
+                } else if (f.getType().equals(Integer.class)) {
                     cell.setUserEnteredValue(new ExtendedValue().setNumberValue(Double.valueOf((Integer) f.get(obj))));
                 } else if (f.getType().equals(Double.class)) {
                     cell.setUserEnteredValue(new ExtendedValue().setNumberValue((Double) f.get(obj)));
@@ -127,15 +117,16 @@ public class AnnotationUtil {
                     cell.setUserEnteredFormat(new CellFormat().setNumberFormat(new NumberFormat().setType("DATE").setPattern("dd-MMM-yyyy")));
                 } else if (f.getType().equals(Boolean.class)) {
                     cell.setUserEnteredValue(new ExtendedValue().setBoolValue((Boolean) f.get(obj)));
-                }
-                //todo enum type
-                // convert to String type and in else throw exception
-                else {
+                } else if (f.getType().equals(String.class)) {
                     if (f.getAnnotation(Column.class).formula()) {
                         cell.setUserEnteredValue(new ExtendedValue().setFormulaValue(String.valueOf(f.get(obj))));
                     } else {
                         cell.setUserEnteredValue(new ExtendedValue().setStringValue(String.valueOf(f.get(obj))));
                     }
+                } else if(f.getType().isEnum()){
+                    cell.setUserEnteredValue(new ExtendedValue().setStringValue(String.valueOf(f.get(obj))));
+                } else {
+                    throw new RuntimeException("Field type is not supported "+ f.getType());
                 }
                 cellData.add(cell);
             } catch (Exception e) {
