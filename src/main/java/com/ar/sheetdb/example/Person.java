@@ -26,7 +26,7 @@ public class Person extends GoogleSheet {
     @Override
     public String toString() {
         return "Person{" +
-                "row=" + row +
+                "row=" + getRow() +
                 ", id=" + id +
                 ", name='" + name + '\'' +
                 ", profit=" + profit +

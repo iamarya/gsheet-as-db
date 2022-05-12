@@ -86,7 +86,7 @@ public class Db {
                     continue;
                 }
                 T model = AnnotationUtil.convert(values.get(i), type);
-                model.row = i + 2;
+                model.setRow(i + 2);
                 result.add(model);
             }
             return result;
@@ -118,8 +118,8 @@ public class Db {
 
     public <T extends GoogleSheet> void add(T obj) {
         List<? extends GoogleSheet> all = getAll(obj.getClass());
-        int index = all.size()==0? 2: all.get(all.size() - 1).row + 1;
-        obj.row = index;
+        int index = all.size()==0? 2: all.get(all.size() - 1).getRow() + 1;
+        obj.setRow(index);
         update(obj);
     }
 
@@ -165,8 +165,8 @@ public class Db {
         cellReq.setRange(new GridRange().setSheetId(AnnotationUtil.getSheetId(type))
                 .setStartColumnIndex(0)
                 .setEndColumnIndex(columnCount)
-                .setStartRowIndex(obj.row - 1)
-                .setEndRowIndex(obj.row));
+                .setStartRowIndex(obj.getRow() - 1)
+                .setEndRowIndex(obj.getRow()));
 
         cellReq.setRows(rowData);
         cellReq.setFields("userEnteredValue,userEnteredFormat.numberFormat");
@@ -186,7 +186,7 @@ public class Db {
             String sheetName = AnnotationUtil.getTable(type);
             int columnCount = AnnotationUtil.getColumns(type).size();
             String finalColumn = Character.toString((char) 65 + columnCount - 1);
-            String range = sheetName + "!A" + obj.row + ":" + finalColumn + obj.row;
+            String range = sheetName + "!A" + obj.getRow() + ":" + finalColumn + obj.getRow();
             AnnotationUtil.delete(obj);
             ClearValuesRequest requestBody = new ClearValuesRequest();
             Sheets.Spreadsheets.Values.Clear request = sheetService.spreadsheets().values().clear(spreadsheetId, range, requestBody);

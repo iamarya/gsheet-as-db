@@ -26,7 +26,7 @@ public class AnnotationUtil {
     }
 
     public static <T extends GoogleSheet> List<String> getColumns(Class<T> type) {
-        return Arrays.stream(type.getFields())
+        return Arrays.stream(type.getDeclaredFields())
                 .filter(f -> f.getAnnotation(Column.class) != null)
                 .sorted(Comparator.comparingInt(f -> f.getAnnotation(Column.class).order()))
                 .map(f -> f.getAnnotation(Column.class).name()).collect(Collectors.toList());
@@ -44,8 +44,9 @@ public class AnnotationUtil {
         T o = null;
         try {
             o = type.newInstance();
-            List<Field> fields = Arrays.stream(type.getFields())
+            List<Field> fields = Arrays.stream(type.getDeclaredFields())
                     .filter(f -> f.getAnnotation(Column.class) != null)
+                    .map(f->{f.setAccessible(true); return f;})
                     .sorted(Comparator.comparingInt(f -> f.getAnnotation(Column.class).order()))
                     .collect(Collectors.toList());
             for (int i = 0; i < x.size(); i++) {
@@ -79,6 +80,7 @@ public class AnnotationUtil {
     public static <T extends GoogleSheet> void delete(T obj) {
         Class<? extends GoogleSheet> type = obj.getClass();
         List<Field> fields = Arrays.stream(type.getDeclaredFields())
+                .map(f->{f.setAccessible(true); return f;})
                 .filter(f -> f.getAnnotation(Column.class) != null).collect(Collectors.toList());
         fields.forEach(f -> {
             try {
@@ -96,7 +98,8 @@ public class AnnotationUtil {
         Class<? extends GoogleSheet> type = obj.getClass();
         List<CellData> cellData = new ArrayList<CellData>();
 
-        List<Field> fields = Arrays.stream(type.getFields())
+        List<Field> fields = Arrays.stream(type.getDeclaredFields())
+                .map(f->{f.setAccessible(true); return f;})
                 .filter(f -> f.getAnnotation(Column.class) != null)
                 .sorted(Comparator.comparingInt(f -> f.getAnnotation(Column.class).order())).collect(Collectors.toList());
 
