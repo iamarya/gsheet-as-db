@@ -67,7 +67,7 @@ public class Db {
             int columnCount = AnnotationUtil.getColumns(type).size();
             String finalColumn = Character.toString((char) 65 + columnCount - 1);
             // 65 ascii value of A, so the code will work up to Z column only.
-            String range = sheetName + "!A2:" + finalColumn + rowFetchAtOnce;
+            String range = sheetName + "!A2:" + finalColumn + rowFetchAtOnce+1;
             List<String> ranges = List.of(range);
             Sheets.Spreadsheets.Values.BatchGet request =
                     sheetService.spreadsheets().values().batchGet(spreadsheetId);
@@ -96,7 +96,6 @@ public class Db {
     }
 
     public <T extends GoogleSheet> void generateHeaders(Class<T> type) {
-        //TODO set columnwise formatting also
         rateLimiter.consume();
         String sheetName = AnnotationUtil.getTable(type);
         int columnCount = AnnotationUtil.getColumns(type).size();
