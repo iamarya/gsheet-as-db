@@ -112,7 +112,7 @@ public class AnnotationUtil {
                     cell.setUserEnteredValue(new ExtendedValue().setNumberValue(Double.valueOf((Integer) f.get(obj))));
                 } else if (f.getType().equals(Double.class)) {
                     cell.setUserEnteredValue(new ExtendedValue().setNumberValue((Double) f.get(obj)));
-                    cell.setUserEnteredFormat(new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("0.00")));
+                    cell.setUserEnteredFormat(new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("#.##")));
                 } else if (f.getType().equals(LocalDate.class)) {
                     LocalDate date = (LocalDate) f.get(obj);
                     long days = DAYS.between(baseDate, date);
